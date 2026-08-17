@@ -34,33 +34,48 @@ def parse_args():
 
     return parse.parse_args()
 
+def system_prompt(func_defs, user_prompt):
+    # function_name(params (type)): descreption . Return number
+    available_funcs = []
+    for func in func_defs:
+        params = ", ".join([f"{param_name} ({param_type.type})" 
+                            for param_name, param_type in func.parameters.items()])
 
+        available_funcs.append(
+            f"{func.name}({params}): {func.description} Return {func.returns.type}"
+            )
+
+    available_funcs = "\n".join(available_funcs)
+
+    system_prompt = (
+        "You are a function-calling assistant. Given a user request, "
+        "select the single most appropriate function from the list below "
+        "and provide the correct arguments as JSON.\n\n"
+        f"Available functions:\n{available_funcs}\n\n"
+        "Respond with only the function name and its arguments no "
+        "explanation, no extra text. "
+        "Output only valid JSON: {'name': '<fn>', 'args': {<args>}}"
+    )
+
+    return (
+        f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
+        f"<|im_start|>user\n{user_prompt}<|im_end|>\n"
+        f"<|im_start|>assistant\n"
+    )
 
 def main():
     args = parse_args()
-    # print(args.input)
-
-    # print(args.function_definition)
-    # print(args.input)
-    # print(args.input)
 
     try:
         func_defs = load_data(args.function_definition, False)
         promts = load_data(args.input)
-
-        for p in promts:
-            print(p.prompt)
-
-        for f in func_defs:
-            print(f)
     except LoadError as err:
         print(err)
-        
-        
 
 
-
-
+    full_prompt = system_prompt(func_defs, promts[0].prompt)
+    print(full_prompt)
+ 
 
 if __name__ == "__main__":
     main()
