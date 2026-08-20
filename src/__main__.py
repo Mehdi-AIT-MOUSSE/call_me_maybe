@@ -1,7 +1,9 @@
 # from "/goinfre/mait-mou/call_me_maybe/llm_sdk/llm_sdk" import Small_LLM_Model
 from llm_sdk import Small_LLM_Model
 import argparse
-from .data_loader import load_data, LoadError
+from .data_loader import load_data, load_vocab, LoadError
+
+import numpy as np
 
 def parse_args():
     parse = argparse.ArgumentParser(
@@ -65,21 +67,21 @@ def system_prompt(func_defs, user_prompt):
 
 def main():
     args = parse_args()
+    llm = Small_LLM_Model()
 
     try:
         func_defs = load_data(args.function_definition, False)
         promts = load_data(args.input)
+
+        vocab_path = llm.get_path_to_vocab_file()
+        vocab = load_vocab(vocab_path)
     except LoadError as err:
         print(err)
 
-
     full_prompt = system_prompt(func_defs, promts[0].prompt)
-    print(full_prompt)
- 
 
 if __name__ == "__main__":
     main()
-
 
 
 

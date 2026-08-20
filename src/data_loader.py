@@ -38,3 +38,27 @@ def load_data(path, is_prompt=True):
         raise LoadError(
             f"Load Error: Fiels: {err['loc'][0]} | Message: {err['msg']}."
         )
+
+
+def load_vocab(vocab_path):
+
+    try:
+        with open(vocab_path, 'r') as f:
+            vocab = json.load(f)
+
+        return vocab
+
+    except json.JSONDecodeError:
+        raise LoadError(
+            "Load Error: The file is not a valid JSON document."
+            )
+
+    except FileNotFoundError:
+        raise LoadError(
+            "Load Error: The specified file could not be found."
+            )
+
+    except PermissionError:
+        raise LoadError(
+            "Load Error: No permision to read the file."
+        )
