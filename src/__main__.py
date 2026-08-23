@@ -2,8 +2,7 @@
 from llm_sdk import Small_LLM_Model
 import argparse
 from .data_loader import load_data, load_vocab, LoadError
-
-import numpy as np
+from .constrained_decoding import get_fn_name, get_parames
 
 def parse_args():
     parse = argparse.ArgumentParser(
@@ -56,9 +55,17 @@ def system_prompt(func_defs, user_prompt):
         f"Available functions:\n{available_funcs}\n\n"
         "Respond with only the function name and its arguments no "
         "explanation, no extra text. "
-        "Output only valid JSON: {'name': '<fn>', 'args': {<args>}}"
+        "Example of use:\n"
+        "Request : What is the sum of -2.77 and 3?\n"
+        'function: fn_add_numbers, Prameters : {"a" : -2.77, "b" : 3}'
+        "If prompt says '-2', output -2.0. "
+        "CRITICAL: When a parameter is a regular expression pattern, "
+        "output a complete, syntactically valid regex. "
+        "Ensure every '(' has a matching ')' and every '[' has a matching ']'. "
+        "Use standard regex syntax (e.g. \\d for digits, \\w for word characters, "
+        "\\s for whitespace). Do not truncate the pattern early. "
+        'Output only valid JSON: {"name": "<fn>", "parameters": {<args>}}'
     )
-
     return (
         f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
         f"<|im_start|>user\n{user_prompt}<|im_end|>\n"
@@ -77,16 +84,37 @@ def main():
         vocab = load_vocab(vocab_path)
     except LoadError as err:
         print(err)
+        exit(1)
 
-    full_prompt = system_prompt(func_defs, promts[0].prompt)
+    fn_names = set(fn.name for fn in func_defs)
+    fn_names_ids = []
 
+    for fn in fn_names:
+        fn_names_ids.extend(llm.encode(fn).tolist()[0])
+
+    fn_names_ids = set(fn_names_ids)
+
+    numbers_ids = []
+
+    for i in "0123456789.,−-":
+        numbers_ids += llm.encode(i).tolist()[0]
+
+    for p in promts:
+        full_prompt = system_prompt(func_defs, p.prompt)
+        prompt_ids = llm.encode(full_prompt).tolist()[0]
+
+        result = llm.encode('{"name":"').tolist()[0]
+
+        fn_name = get_fn_name(llm, result, fn_names_ids, fn_names, prompt_ids)
+
+        fn_parames = [fn.parameters for fn in func_defs if fn.name == fn_name][0]
+
+        parames = get_parames(llm, result, fn_parames, numbers_ids, prompt_ids, vocab)
+
+        print(parames)
+          
 if __name__ == "__main__":
-    main()
-
-
-
-# def encode(self, text: str) -> torch.Tensor:
-
-# def decode(self, ids: torch.Tensor | list[int]) -> str:
-
-# def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
+    try:
+        main()
+    except KeyboardInterrupt:
+        exit()
