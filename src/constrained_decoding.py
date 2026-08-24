@@ -1,16 +1,45 @@
+"""Constrained decoding for function name and parameter generation."""
+
+from __future__ import annotations
+
+from typing import Any
+
 import numpy as np
 
-def get_fn_name(llm, result, fn_names_ids, fn_names, prompt_ids):
+from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
+
+from .models import ParamType
+
+
+def get_fn_name(
+    llm: Small_LLM_Model,
+    result: list[int],
+    fn_names_ids: set[int],
+    fn_names: set[str],
+    prompt_ids: list[int],
+) -> str:
+    """Generate a function name using constrained token selection.
+
+    Args:
+        llm: The language model instance.
+        result: Mutable list of generated token IDs so far.
+        fn_names_ids: Token IDs allowed during name generation.
+        fn_names: Set of valid function names.
+        prompt_ids: Encoded prompt token IDs.
+
+    Returns:
+        The selected function name string.
+    """
     fn_name = ""
 
     for _ in range(20):
         logits = np.array(llm.get_logits_from_input_ids(prompt_ids + result))
         mask_logits = np.full(len(logits), -np.inf)
 
-        for id in fn_names_ids:
-            mask_logits[id] = logits[id]
+        for token_id in fn_names_ids:
+            mask_logits[token_id] = logits[token_id]
 
-        next_token = np.argmax(mask_logits)
+        next_token = int(np.argmax(mask_logits))
 
         result.append(next_token)
 
@@ -20,28 +49,51 @@ def get_fn_name(llm, result, fn_names_ids, fn_names, prompt_ids):
 
     return fn_name
 
-def get_parames(llm, result, fn_parames, numbers_ids, prompt_ids, vocab):
-    inject = llm.encode('", "parameters":{').tolist()[0]
-    result += inject 
 
-    parames = {}
+def get_parames(
+    llm: Small_LLM_Model,
+    result: list[int],
+    fn_parames: dict[str, ParamType],
+    numbers_ids: list[int],
+    prompt_ids: list[int],
+    vocab: dict[str, Any],
+) -> dict[str, Any]:
+    """Generate function parameters using type-aware constrained decoding.
+
+    Args:
+        llm: The language model instance.
+        result: Mutable list of generated token IDs so far.
+        fn_parames: Parameter schema for the selected function.
+        numbers_ids: Token IDs allowed for numeric values.
+        prompt_ids: Encoded prompt token IDs.
+        vocab: Tokenizer vocabulary mapping.
+
+    Returns:
+        A dictionary of parameter names to decoded values.
+    """
+    inject = llm.encode('", "parameters":{').tolist()[0]
+    result += inject
+
+    parames: dict[str, Any] = {}
     for i, p in enumerate(fn_parames):
-        type = fn_parames[p].type
-        if type == "string":
+        param_type = fn_parames[p].type
+        if param_type == "string":
             inject = llm.encode(f'"{p}":"').tolist()[0]
         else:
             inject = llm.encode(f'"{p}":').tolist()[0]
 
         result += inject
-        param = []
+        param: list[int] = []
         max_tokens = 100
         for step in range(max_tokens):
-            logits = np.array(llm.get_logits_from_input_ids(prompt_ids + result + param))
+            logits = np.array(
+                llm.get_logits_from_input_ids(prompt_ids + result + param)
+            )
 
-            if type == "number":
+            if param_type == "number":
                 mask_logits = np.full(len(logits), -np.inf)
-                for id in numbers_ids:
-                    mask_logits[id] = logits[id]
+                for token_id in numbers_ids:
+                    mask_logits[token_id] = logits[token_id]
 
                 delimiter = ','
 
@@ -53,37 +105,35 @@ def get_parames(llm, result, fn_parames, numbers_ids, prompt_ids, vocab):
 
                 delimiter = '"'
 
-
             next_token = np.argmax(mask_logits)
 
             decoded_token = llm.decode([next_token])
 
-            if delimiter in decoded_token or step == max_tokens - 1:                
+            if delimiter in decoded_token or step == max_tokens - 1:
                 prefix = decoded_token.split(delimiter)[0]
-                
+
                 if prefix:
                     param += llm.encode(prefix).tolist()[0]
 
                 parames[p] = llm.decode(param)
-                if type == "number":
+                if param_type == "number":
                     parames[p] = float(parames[p])
 
                 break
 
-            param.append(next_token)
+            param.append(int(next_token))
 
         result += param
-        if i != len(fn_parames)-1:
-            if type == "string":
+        if i != len(fn_parames) - 1:
+            if param_type == "string":
                 result += llm.encode('",').tolist()[0]
             else:
                 result += llm.encode(',').tolist()[0]
         else:
-            if type == "string":
+            if param_type == "string":
                 result += llm.encode('"}').tolist()[0]
             else:
                 result += llm.encode('}').tolist()[0]
-
 
     result += llm.encode("}").tolist()[0]
 
