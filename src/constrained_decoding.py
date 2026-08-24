@@ -34,7 +34,8 @@ def get_parames(llm, result, fn_parames, numbers_ids, prompt_ids, vocab):
 
         result += inject
         param = []
-        for _ in range(500):
+        max_tokens = 100
+        for step in range(max_tokens):
             logits = np.array(llm.get_logits_from_input_ids(prompt_ids + result + param))
 
             if type == "number":
@@ -57,7 +58,7 @@ def get_parames(llm, result, fn_parames, numbers_ids, prompt_ids, vocab):
 
             decoded_token = llm.decode([next_token])
 
-            if delimiter in decoded_token:                
+            if delimiter in decoded_token or step == max_tokens - 1:                
                 prefix = decoded_token.split(delimiter)[0]
                 
                 if prefix:
