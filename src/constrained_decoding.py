@@ -75,21 +75,21 @@ def get_parames(
 
     parames: dict[str, Any] = {}
     for i, p in enumerate(fn_parames):
-        param_type = fn_parames[p].type
-        if param_type == "string":
-            inject = my_encoder(llm, f'"{p}":"')
-        else:
+        param_type = fn_parames[p].type.lower()
+        if param_type in ["number", "integer", "float"]:
             inject = my_encoder(llm, f'"{p}":')
+        else:
+            inject = my_encoder(llm, f'"{p}":"')
 
         result += inject
         param: list[int] = []
-        max_tokens = 100
+        max_tokens = 75
         for step in range(max_tokens):
             logits = np.array(
                 llm.get_logits_from_input_ids(prompt_ids + result + param)
             )
 
-            if param_type == "number":
+            if param_type in ["number", "integer", "float"]:
                 mask_logits = np.full_like(logits, -np.inf)
                 for token_id in numbers_ids:
                     mask_logits[token_id] = logits[token_id]
@@ -115,7 +115,7 @@ def get_parames(
                     param += my_encoder(llm, prefix)
 
                 parames[p] = my_decoder(llm, param)
-                if param_type == "number":
+                if param_type in ["number", "float"]:
                     parames[p] = float(parames[p])
 
                 break
@@ -124,15 +124,15 @@ def get_parames(
 
         result += param
         if i != len(fn_parames) - 1:
-            if param_type == "string":
-                result += my_encoder(llm, '",')
-            else:
+            if param_type in ["number", "integer", "float"]:
                 result += my_encoder(llm, ',')
-        else:
-            if param_type == "string":
-                result += my_encoder(llm, '"}')
             else:
+                result += my_encoder(llm, '",')
+        else:
+            if param_type in ["number", "integer", "float"]:
                 result += my_encoder(llm, '}')
+            else:
+                result += my_encoder(llm, '"}')
 
     result += my_encoder(llm, "}")
 

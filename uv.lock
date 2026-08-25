@@ -122,6 +122,7 @@ dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pydantic" },
+    { name = "rich" },
 ]
 
 [package.metadata]
@@ -131,6 +132,7 @@ requires-dist = [
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "pydantic", specifier = ">=2.13.4" },
+    { name = "rich", specifier = ">=15.0.0" },
 ]
 
 [[package]]

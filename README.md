@@ -1,6 +1,9 @@
 *This project has been created as part of the 42 curriculum by mait-mou.*
 
 # call_me_maybe
+<p align="center">
+  <img src="images/output_imge.png" alt="alt text">
+</p>
 
 ## Description
 
@@ -36,13 +39,20 @@ Default paths read from `data/input/` and write to `data/output/`:
 ```bash
 make run
 # or
-uv run python -m src
+uv run python3 -m src
 ```
 
 With custom paths:
 
 ```bash
-uv run python -m src \
+make run -m src ARGS="\
+  --function_definition data/input/functions_definition.json \
+  --input data/input/function_calling_tests.json \
+  --output data/output/function_calling_results.json"
+
+# or
+
+uv run python3 -m src \
   --function_definition data/input/functions_definition.json \
   --input data/input/function_calling_tests.json \
   --output data/output/function_calling_results.json
@@ -60,7 +70,6 @@ uv run python -m src \
 | `make debug`       | Run with Python debugger (`pdb`)              |
 | `make clean`       | Remove `__pycache__`, `.mypy_cache`, etc.     |
 | `make lint`        | Run `flake8` and `mypy` with project settings |
-| `make lint-strict` | Run `flake8` and `mypy --strict`              |
 
 
 
@@ -139,9 +148,7 @@ This approach guarantees 100% valid JSON structure because invalid tokens receiv
 
 ## Resources
 
-- [PEP 257 – Docstring Conventions](https://peps.python.org/pep-0257/)
 - [Pydantic documentation](https://docs.pydantic.dev/)
 - [Qwen3 model card](https://huggingface.co/Qwen/Qwen3-0.6B)
-- [Constrained decoding overview](https://blog.dottxt.co/co-constrained-generation.html)
-- [Function calling in LLMs (OpenAI docs)](https://platform.openai.com/docs/guides/function-calling)
+- [Rich documentation](https://rich.readthedocs.io/en/stable/)
 
