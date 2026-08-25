@@ -1,8 +1,7 @@
 """Load and validate JSON input files and vocabulary data."""
 
 import json
-from typing import Any
-
+from typing import cast
 from pydantic import ValidationError
 
 from .models import FunctionDefinition, Prompt
@@ -10,6 +9,7 @@ from .models import FunctionDefinition, Prompt
 
 class LoadError(Exception):
     """Raised when an input file cannot be loaded or validated."""
+    pass
 
 
 def load_data(
@@ -61,9 +61,13 @@ def load_data(
         raise LoadError(
             f"Load Error: Fiels: {err['loc'][0]} | Message: {err['msg']}."
         )
+    except TypeError:
+        raise LoadError(
+            "Load Error: Invalid format."
+        )
 
 
-def load_vocab(vocab_path: str) -> dict[str, Any]:
+def load_vocab(vocab_path: str) -> dict[str, int]:
     """Load the tokenizer vocabulary mapping from a JSON file.
 
     Args:
@@ -80,7 +84,7 @@ def load_vocab(vocab_path: str) -> dict[str, Any]:
         with open(vocab_path, "r", encoding="utf-8") as file_handle:
             vocab = json.load(file_handle)
 
-        return vocab
+        return cast(dict[str, int], vocab)
 
     except json.JSONDecodeError:
         raise LoadError(
@@ -95,4 +99,8 @@ def load_vocab(vocab_path: str) -> dict[str, Any]:
     except PermissionError:
         raise LoadError(
             "Load Error: No permision to read the file."
+        )
+    except TypeError:
+        raise LoadError(
+            "Load Error: Invalid format."
         )

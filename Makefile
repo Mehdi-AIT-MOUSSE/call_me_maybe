@@ -1,5 +1,7 @@
 .PHONY: install run debug clean lint lint-strict
 
+run:
+	uv run python3 -m src
 install:
 	uv add flake8 
 	uv add mypy
@@ -8,11 +10,9 @@ install:
 	uv add ./llm_sdk
 	uv sync
 
-run:
-	uv run python -m src
 
 debug:
-	uv run python -m pdb -m src
+	uv run python3 -m pdb -m src
 
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
@@ -21,9 +21,9 @@ clean:
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
 lint:
-	uv run flake8 .
-	uv run mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	uv run flake8 src/
+	uv run mypy src/ --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	uv run flake8 .
-	uv run mypy . --strict
+	uv run flake8 src
+	uv run mypy src/ --strict

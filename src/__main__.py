@@ -3,8 +3,7 @@
 import argparse
 from typing import Any
 
-from llm_sdk import Small_LLM_Model
-
+from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from .build_promp_output import build_output, system_prompt
 from .constrained_decoding import get_fn_name, get_parames
 from .data_loader import LoadError, load_data, load_vocab
@@ -50,7 +49,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     """Load inputs, run constrained decoding, and write results."""
     args = parse_args()
-    llm = Small_LLM_Model()
+
 
     try:
         func_defs = load_data(args.function_definition, False)
@@ -60,6 +59,13 @@ def main() -> None:
         vocab = load_vocab(vocab_path)
     except LoadError as err:
         print(err)
+        exit(1)
+
+    try:
+        llm = Small_LLM_Model(model_name=args.model)
+        # example for other model : Qwen/Qwen3-1.7B
+    except Exception as error:
+        print(error)
         exit(1)
 
     fn_names = set(fn.name for fn in func_defs)
@@ -102,7 +108,7 @@ def main() -> None:
 
         result_data.append(result_plan)
 
-        print(result_data)
+        print(result_plan)
 
     build_output(args.output, result_data)
 

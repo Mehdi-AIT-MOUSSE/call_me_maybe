@@ -4,9 +4,7 @@ from typing import Any
 
 import numpy as np
 
-from typing import Any
-
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 
 from .models import ParamType
 
@@ -44,7 +42,6 @@ def get_fn_name(
         next_token = int(np.argmax(mask_logits))
 
         result.append(next_token)
-
         fn_name += my_decoder(llm, [next_token])
         if fn_name in fn_names:
             break
@@ -58,7 +55,7 @@ def get_parames(
     fn_parames: dict[str, ParamType],
     numbers_ids: list[int],
     prompt_ids: list[int],
-    vocab: dict[str, Any],
+    vocab: dict[str, int],
 ) -> dict[str, Any]:
     """Generate function parameters using type-aware constrained decoding.
 
@@ -93,7 +90,7 @@ def get_parames(
             )
 
             if param_type == "number":
-                mask_logits = np.full(len(logits), -np.inf)
+                mask_logits = np.full_like(logits, -np.inf)
                 for token_id in numbers_ids:
                     mask_logits[token_id] = logits[token_id]
 

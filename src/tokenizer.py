@@ -1,15 +1,16 @@
 """Custom tokenizer encode/decode using the vocabulary file (bonus)."""
 
 import functools
-from llm_sdk import Small_LLM_Model
+from typing import cast
+from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from .data_loader import LoadError, load_vocab
-from typing import Any
+# from typing import int
 
 
 @functools.lru_cache(maxsize=32)
-def get_cached_vocab(vocab_path: str) -> dict[str, Any]:
+def get_cached_vocab(vocab_path: str) -> dict[str, int]:
     """Load and cache a vocabulary file from disk."""
-    return load_vocab(vocab_path)
+    return cast(dict[str, int], load_vocab(vocab_path))
 
 
 @functools.lru_cache(maxsize=32)
@@ -67,12 +68,12 @@ def my_decoder(llm: Small_LLM_Model, ids: list[int]) -> str:
 
 if __name__ == "__main__":
     llm = Small_LLM_Model()
-    
+
     idss = llm.encode("Hello World!").tolist()[0]
     print("Official IDs:", idss)
-    
+
     ids = my_encoder(llm, "Hello World!")
     print("Custom IDs:  ", ids)
-    
+
     data = my_decoder(llm, ids)
     print("Decoded text:", repr(data))

@@ -18,3 +18,5 @@ data/output/
 # IDE
 .vscode/
 .idea/
+
+.python-version
