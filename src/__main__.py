@@ -1,7 +1,5 @@
 """Entry point for the call_me_maybe function-calling tool."""
 
-from __future__ import annotations
-
 import argparse
 from typing import Any
 
@@ -103,6 +101,8 @@ def main() -> None:
         }
 
         result_data.append(result_plan)
+
+        print(result_data)
 
     build_output(args.output, result_data)
 

@@ -1,6 +1,11 @@
 .PHONY: install run debug clean lint lint-strict
 
 install:
+	uv add flake8 
+	uv add mypy
+	uv add numpy 
+	uv add pydantic
+	uv add ./llm_sdk
 	uv sync
 
 run:

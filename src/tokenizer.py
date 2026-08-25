@@ -1,38 +1,26 @@
 """Custom tokenizer encode/decode using the vocabulary file (bonus)."""
 
-from __future__ import annotations
-
 import functools
-from typing import Any
-
-from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
-
+from llm_sdk import Small_LLM_Model
 from .data_loader import LoadError, load_vocab
+from typing import Any
 
 
 @functools.lru_cache(maxsize=32)
 def get_cached_vocab(vocab_path: str) -> dict[str, Any]:
-    """Load and cache a vocabulary file from disk.
-
-    Args:
-        vocab_path: Path to the vocabulary JSON file.
-
-    Returns:
-        Vocabulary mapping token strings to IDs.
-    """
+    """Load and cache a vocabulary file from disk."""
     return load_vocab(vocab_path)
 
 
+@functools.lru_cache(maxsize=32)
+def get_cached_revocab(vocab_path: str) -> dict[int, str]:
+    """Create and cache the reverse vocabulary (IDs to tokens)."""
+    vocab = get_cached_vocab(vocab_path)
+    return {v: k for k, v in vocab.items()}
+
+
 def my_encoder(llm: Small_LLM_Model, data: str) -> list[int]:
-    """Encode text into token IDs using longest-match vocab lookup.
-
-    Args:
-        llm: The language model instance (used to locate vocab file).
-        data: Text string to encode.
-
-    Returns:
-        List of token IDs.
-    """
+    """Encode text into token IDs using longest-match vocab lookup."""
     try:
         vocab_path = llm.get_path_to_vocab_file()
         vocab = get_cached_vocab(vocab_path)
@@ -60,43 +48,31 @@ def my_encoder(llm: Small_LLM_Model, data: str) -> list[int]:
     return ids
 
 
-def my_decoder(ids: list[int]) -> str:
-    """Decode token IDs back into a text string.
-
-    Args:
-        ids: List of token IDs to decode.
-
-    Returns:
-        Decoded text string.
-    """
+def my_decoder(llm: Small_LLM_Model, ids: list[int]) -> str:
+    """Decode token IDs back into a text string."""
     try:
         vocab_path = llm.get_path_to_vocab_file()
-        vocab = get_cached_vocab(vocab_path)
+        revocab = get_cached_revocab(vocab_path)
     except LoadError as err:
         print(err)
         exit(1)
 
-    revocab = {v: k for k, v in vocab.items()}
-
     result = ""
     for token_id in ids:
-        result += revocab[token_id]
+        result += revocab.get(token_id, "")
 
     result = result.replace("Ġ", " ").replace("Ċ", "\n")
     return result
 
 
-llm = Small_LLM_Model()
-vocab_path = llm.get_path_to_vocab_file()
-
-vocab = load_vocab(vocab_path)
-
-idss = llm.encode("Hello World!\n").tolist()[0]
-print(idss)
-ids = my_encoder(vocab, "Hello World!\n")
-
-print(ids)
-
-data = my_decoder(ids)
-
-print(data)
+if __name__ == "__main__":
+    llm = Small_LLM_Model()
+    
+    idss = llm.encode("Hello World!").tolist()[0]
+    print("Official IDs:", idss)
+    
+    ids = my_encoder(llm, "Hello World!")
+    print("Custom IDs:  ", ids)
+    
+    data = my_decoder(llm, ids)
+    print("Decoded text:", repr(data))

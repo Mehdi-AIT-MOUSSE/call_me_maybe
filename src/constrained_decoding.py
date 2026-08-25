@@ -1,14 +1,16 @@
 """Constrained decoding for function name and parameter generation."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import numpy as np
 
-from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
+from typing import Any
+
+from llm_sdk import Small_LLM_Model
 
 from .models import ParamType
+
+from .tokenizer import my_decoder, my_encoder
 
 
 def get_fn_name(
@@ -43,7 +45,7 @@ def get_fn_name(
 
         result.append(next_token)
 
-        fn_name += llm.decode(next_token)
+        fn_name += my_decoder(llm, [next_token])
         if fn_name in fn_names:
             break
 
@@ -71,16 +73,16 @@ def get_parames(
     Returns:
         A dictionary of parameter names to decoded values.
     """
-    inject = llm.encode('", "parameters":{').tolist()[0]
+    inject = my_encoder(llm, '", "parameters":{')
     result += inject
 
     parames: dict[str, Any] = {}
     for i, p in enumerate(fn_parames):
         param_type = fn_parames[p].type
         if param_type == "string":
-            inject = llm.encode(f'"{p}":"').tolist()[0]
+            inject = my_encoder(llm, f'"{p}":"')
         else:
-            inject = llm.encode(f'"{p}":').tolist()[0]
+            inject = my_encoder(llm, f'"{p}":')
 
         result += inject
         param: list[int] = []
@@ -107,15 +109,15 @@ def get_parames(
 
             next_token = np.argmax(mask_logits)
 
-            decoded_token = llm.decode([next_token])
+            decoded_token = my_decoder(llm, [next_token])
 
             if delimiter in decoded_token or step == max_tokens - 1:
                 prefix = decoded_token.split(delimiter)[0]
 
                 if prefix:
-                    param += llm.encode(prefix).tolist()[0]
+                    param += my_encoder(llm, prefix)
 
-                parames[p] = llm.decode(param)
+                parames[p] = my_decoder(llm, param)
                 if param_type == "number":
                     parames[p] = float(parames[p])
 
@@ -126,15 +128,15 @@ def get_parames(
         result += param
         if i != len(fn_parames) - 1:
             if param_type == "string":
-                result += llm.encode('",').tolist()[0]
+                result += my_encoder(llm, '",')
             else:
-                result += llm.encode(',').tolist()[0]
+                result += my_encoder(llm, ',')
         else:
             if param_type == "string":
-                result += llm.encode('"}').tolist()[0]
+                result += my_encoder(llm, '"}')
             else:
-                result += llm.encode('}').tolist()[0]
+                result += my_encoder(llm, '}')
 
-    result += llm.encode("}").tolist()[0]
+    result += my_encoder(llm, "}")
 
     return parames
